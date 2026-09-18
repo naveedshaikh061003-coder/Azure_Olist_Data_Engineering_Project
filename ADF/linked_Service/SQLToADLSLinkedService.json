@@ -1,0 +1,12 @@
+{
+    "name": "SQLToADLSLinkedService",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "annotations": [],
+        "type": "AzureBlobFS",
+        "typeProperties": {
+            "url": "<ADLS_GEN2_DFS_URL>",
+            "encryptedCredential": "<REMOVED_FOR_SECURITY>"
+        }
+    }
+}

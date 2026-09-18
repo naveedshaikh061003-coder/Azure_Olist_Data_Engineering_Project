@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+.env.*
+*.key
+*.pem
+secrets/
+credentials/
+
+# Azure / Databricks local configuration
+.databricks/
+.azure/
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local data files
+*.csv
+*.parquet
+*.jsonl
+
+# Terraform / state files
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# System files
+desktop.ini

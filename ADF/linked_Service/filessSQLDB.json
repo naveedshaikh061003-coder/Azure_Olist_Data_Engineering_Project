@@ -1,0 +1,18 @@
+{
+    "name": "filessSQLDB",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "annotations": [],
+        "type": "MySql",
+        "typeProperties": {
+            "server": "<MYSQL_SERVER>",
+            "port": "<MYSQL_PORT>",
+            "database": "<MYSQL_DATABASE>",
+            "username": "<MYSQL_USERNAME>",
+            "sslMode": 1,
+            "useSystemTrustStore": 0,
+            "driverVersion": "v2",
+            "encryptedCredential": "<REMOVED_FOR_SECURITY>"
+        }
+    }
+}
