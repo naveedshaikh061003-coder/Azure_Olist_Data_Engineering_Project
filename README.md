@@ -1,13 +1,23 @@
-````markdown
 # Azure Olist E-Commerce Data Engineering Project
 
 ## 📌 Project Overview
 
-This project implements an end-to-end data engineering pipeline using the Brazilian E-Commerce Public Dataset by Olist.
+This project implements an end-to-end cloud data engineering pipeline using the **Brazilian E-Commerce Public Dataset by Olist**.
 
-The pipeline integrates data from multiple sources, ingests the data using Azure Data Factory, stores it using a Medallion Architecture in Azure Data Lake Storage Gen2, performs data cleaning and transformation using Azure Databricks, and uses Azure Synapse Analytics for SQL-based processing and creation of the final Gold layer.
+The project integrates data from multiple sources and uses Microsoft Azure services to build a data pipeline following the **Medallion Architecture**.
 
-The project demonstrates how different Azure services can work together to build a scalable cloud-based data engineering solution.
+The pipeline uses:
+
+- **Azure Data Factory** for data ingestion and orchestration
+- **Azure Data Lake Storage Gen2** for Bronze, Silver, and Gold data layers
+- **Azure Databricks** for data cleaning, transformation, and integration
+- **Azure Synapse Analytics** for SQL-based processing and querying
+- **MySQL** as one of the external data sources
+- **MongoDB / NoSQL** as another external data source
+- **PySpark / Python** for data transformation
+- **Parquet** as the primary processed data format
+
+The main objective was to build a practical, multi-source Azure data engineering workflow from raw data ingestion through transformed and queryable data.
 
 ---
 
@@ -15,74 +25,93 @@ The project demonstrates how different Azure services can work together to build
 
 ![Project Architecture](Architecture/Architecture%20Diagram.png)
 
-### Data Flow
+### High-Level Data Flow
 
 ```text
-Olist Data Sources
-       │
-       ├── GitHub / HTTP
-       ├── MySQL
-       └── MongoDB / NoSQL
-              │
-              ▼
-     Azure Data Factory
-     Metadata-driven ingestion
-              │
-              ▼
-        ADLS Gen2
-          Bronze
-              │
-              ▼
-      Azure Databricks
-   Cleaning & Transformation
-       + Joins + Integration
-              │
-              ▼
-        ADLS Gen2
-          Silver
-              │
-              ▼
-       Azure Synapse
-     SQL Processing & Views
-      External Table Creation
-              │
-              ▼
-        ADLS Gen2
-           Gold
-````
+                    Olist Data Sources
+                           │
+             ┌─────────────┼─────────────┐
+             │             │             │
+        GitHub / HTTP    MySQL       MongoDB / NoSQL
+             │             │             │
+             └─────────────┼─────────────┘
+                           │
+                           ▼
+                 Azure Data Factory
+                 Data Ingestion
+                 & Orchestration
+                           │
+                           ▼
+                    ADLS Gen2
+                      Bronze
+                    Raw Data
+                           │
+                           ▼
+                  Azure Databricks
+             Cleaning & Transformation
+             Joins & Data Integration
+                           │
+                           ▼
+                    ADLS Gen2
+                      Silver
+                 Transformed Data
+                           │
+                           ▼
+                  Azure Synapse
+             SQL Processing & Querying
+                    OPENROWSET
+                       Views
+                 External Tables
+                           │
+                           ▼
+                    ADLS Gen2
+                       Gold
+                    / Serving
+```
 
 ---
 
-## 🎯 Project Objectives
+# 🎯 Project Objectives
 
-* Build an end-to-end cloud data engineering pipeline.
-* Integrate data from multiple source systems.
-* Implement metadata-driven data ingestion using Azure Data Factory.
-* Store data using the Bronze, Silver, and Gold Medallion Architecture.
-* Perform data cleaning and transformation using Azure Databricks.
-* Integrate MongoDB/NoSQL data with the Olist datasets.
-* Process and query Parquet data using Azure Synapse Analytics.
-* Create views and external tables for the Gold layer.
+The main objectives of this project were to:
+
+- Build an end-to-end Azure data engineering pipeline.
+- Integrate data from multiple heterogeneous sources.
+- Implement metadata-driven ingestion using Azure Data Factory.
+- Store data using the Bronze, Silver, and Gold layers of a Medallion Architecture.
+- Use Azure Databricks and PySpark for data cleaning and transformation.
+- Integrate MongoDB/NoSQL data with the Olist datasets.
+- Perform joins across multiple Olist datasets.
+- Store transformed data in Parquet format.
+- Query Parquet data directly using Azure Synapse Analytics.
+- Create SQL views and external tables for processed data.
+- Gain practical experience building a cloud-based data engineering workflow.
 
 ---
 
-## 🗂️ Data Sources
+# 🗂️ Data Sources
 
-The project uses multiple Olist data sources.
+The project integrates Olist data from multiple sources.
 
-### HTTP / GitHub
+## 1. GitHub / HTTP Source
 
-Multiple Olist datasets are retrieved from a GitHub repository through HTTP and ingested into Azure Data Lake Storage Gen2 using Azure Data Factory.
+Multiple Olist datasets were retrieved from a GitHub repository using HTTP connections configured in Azure Data Factory.
 
-### MySQL
+These datasets were dynamically processed and copied into the Bronze layer of ADLS Gen2.
 
-The `olist_order_payments` table is stored in MySQL and ingested into the Bronze layer through Azure Data Factory.
+## 2. MySQL
 
-### MongoDB / NoSQL
+The `olist_order_payments` table was stored in MySQL and ingested into ADLS Gen2 using Azure Data Factory.
 
-The product-category data is stored in MongoDB/NoSQL and integrated into the transformation process using Azure Databricks.
+This demonstrates integrating a relational database source into the cloud data lake.
 
-Using multiple source systems demonstrates the integration of heterogeneous data sources within a single data pipeline.
+## 3. MongoDB / NoSQL
+
+Product-category information was stored in a MongoDB/NoSQL source.
+
+The data was loaded into Azure Databricks and integrated with the Olist datasets during the transformation process.
+
+Using these sources demonstrates the integration of different types of data systems into a common data engineering workflow.
 
 ---
 
@@ -90,88 +119,146 @@ Using multiple source systems demonstrates the integration of heterogeneous data
 
 ## 1. Azure Data Factory — Data Ingestion
 
-Azure Data Factory is responsible for ingesting the source data into ADLS Gen2.
+Azure Data Factory was used as the ingestion and orchestration layer.
 
-A metadata-driven approach was implemented using:
+The pipeline uses a **metadata-driven ingestion approach** with:
 
-* Lookup activity
-* ForEach activity
-* Copy activity
-* HTTP connection
-* MySQL connection
-* ADLS Gen2 connection
+- Lookup activity
+- ForEach activity
+- Copy activity
+- HTTP connection
+- MySQL connection
+- ADLS Gen2 connection
 
-The Lookup activity retrieves the table/file metadata, which is then passed to the ForEach activity. The ForEach activity dynamically processes each input and copies the data into the Bronze layer.
+### Metadata-Driven Ingestion
 
-The MySQL source is handled through a separate copy activity.
+The Lookup activity retrieves input metadata containing information about the datasets to be processed.
+
+The metadata is passed to the ForEach activity, which dynamically processes the inputs.
+
+The Copy activity then retrieves the corresponding data and writes it to the Bronze layer in ADLS Gen2.
+
+The ForEach activity in the implemented pipeline processes the inputs sequentially.
+
+The MySQL payment table is handled through a separate Copy activity.
+
+### ADF Flow
+
+```text
+Metadata Configuration
+        │
+        ▼
+Lookup Activity
+        │
+        ▼
+ForEach Activity
+        │
+        ▼
+Copy Activity
+        │
+        ▼
+ADLS Gen2 Bronze
+```
 
 ---
 
-## 2. ADLS Gen2 — Bronze Layer
+# 2. ADLS Gen2 — Bronze Layer
 
-The raw ingested data is stored in the Bronze layer of Azure Data Lake Storage Gen2.
+The raw data ingested through Azure Data Factory is stored in the **Bronze layer** of Azure Data Lake Storage Gen2.
 
-The Bronze layer preserves the source data before transformation.
+The Bronze layer represents the raw ingestion stage before transformation.
 
 ```text
 ADLS Gen2
+│
 └── Bronze
     └── Raw Olist Data
 ```
 
----
-
-## 3. Azure Databricks — Transformation
-
-Azure Databricks is used for data cleaning, transformation, integration, and joining of the datasets.
-
-The transformation process includes:
-
-* Reading datasets from the Bronze layer
-* Ingesting MongoDB product-category data
-* Removing duplicate records
-* Handling missing values
-* Converting date columns
-* Calculating delivery-related metrics
-* Joining multiple Olist datasets
-* Creating an integrated dataset
-* Writing the transformed data as Parquet
-
-The Databricks transformation notebook progressively joins the Olist datasets and integrates the MongoDB product-category information.
+The project uses ADLS Gen2 as the central storage layer between ingestion and transformation.
 
 ---
 
-## 4. ADLS Gen2 — Silver Layer
+# 3. Azure Databricks — Data Transformation
 
-After transformation, the integrated dataset is written to the Silver layer in Parquet format.
+Azure Databricks is used to clean, transform, integrate, and join the datasets stored in the Bronze layer.
+
+The Databricks notebook reads the Olist datasets from ADLS Gen2 and also loads the product-category data from MongoDB/NoSQL.
+
+### Transformation Process
+
+The transformation includes:
+
+- Reading Olist datasets from the Bronze layer
+- Loading MongoDB product-category data
+- Removing duplicate records
+- Removing completely null records
+- Converting date/time columns
+- Calculating delivery-related metrics
+- Joining multiple Olist datasets
+- Integrating product-category information
+- Creating an integrated dataset
+- Writing the transformed data as Parquet
+
+### Data Integration
+
+The notebook progressively joins information from datasets including:
+
+- Orders
+- Customers
+- Payments
+- Order items
+- Products
+- Sellers
+- Geolocation
+- Product categories
+
+The resulting integrated dataset is written to the Silver layer.
+
+---
+
+# 4. ADLS Gen2 — Silver Layer
+
+After the Databricks transformation process, the integrated dataset is written to the **Silver layer** of ADLS Gen2 in Parquet format.
 
 ```text
 ADLS Gen2
+│
 └── Silver
     └── Transformed Olist Data
 ```
 
-The Silver layer contains cleaned and integrated data that is ready for further processing.
+The Silver layer contains cleaned and integrated data that can be queried and processed further.
 
 ---
 
-## 5. Azure Synapse Analytics
+# 5. Azure Synapse Analytics
 
-Azure Synapse Analytics is used for SQL-based processing of the Silver/Gold data.
+Azure Synapse Analytics is used for SQL-based processing and querying of the Parquet data stored in ADLS Gen2.
 
-The project uses `OPENROWSET` to query Parquet files stored in ADLS Gen2.
+The project uses `OPENROWSET` to query Parquet files directly.
+
+### Querying Parquet Data
 
 Example:
 
 ```sql
-SELECT TOP 100*
+SELECT TOP 100 *
 FROM OPENROWSET(
     BULK 'path-to-parquet-data',
     FORMAT = 'PARQUET'
 ) AS result1;
 ```
 
-A view is also created over Parquet data and filtered to include delivered orders:
+This allows Parquet data stored in the data lake to be queried using SQL without first loading the entire dataset into a traditional relational table.
+
+---
+
+## Creating a View
+
+A Synapse view is created over the Parquet data.
+
+One of the implemented views filters the dataset to include orders where the order status is `delivered`.
 
 ```sql
 CREATE VIEW gold.final2
@@ -184,219 +271,314 @@ FROM OPENROWSET(
 WHERE order_status = 'delivered';
 ```
 
+The view provides a SQL-accessible representation of the processed data.
+
 ---
 
-## 6. Gold Layer
+# 6. Gold Layer and External Table
 
-The final processed data is written to the Gold layer.
+The project creates an external Parquet file format in Synapse using **Snappy compression**.
 
-An external Parquet file format using Snappy compression is created in Synapse.
+An external data source is then configured to point to the Gold layer in ADLS Gen2.
 
-An external data source is configured for the Gold layer, and an external table named `gold.finaltable` is created using the processed data.
+An external table named:
 
 ```text
-Azure Synapse
-      │
-      ▼
-gold.final2
-      │
-      ▼
 gold.finaltable
-      │
-      ▼
-ADLS Gen2
-   Gold / Serving
 ```
 
-The external table uses the `Serving` location and the configured Parquet file format.
+is created using the configured external data source and Parquet file format.
+
+The external table uses the `Serving` location.
+
+### Gold Processing Flow
+
+```text
+Silver Parquet Data
+        │
+        ▼
+Azure Synapse
+        │
+        ▼
+OPENROWSET
+        │
+        ▼
+gold.final2
+        │
+        ▼
+gold.finaltable
+        │
+        ▼
+ADLS Gen2
+Gold / Serving
+```
+
+This provides a queryable external-table representation of the processed data in the Gold/Serving layer.
 
 ---
 
-# 🧹 Key Transformations
+# 🧹 Key Data Transformations
 
-The Databricks transformation process includes:
+The Databricks transformation process includes several data engineering operations.
 
-### Data Cleaning
+## Data Cleaning
 
-* Duplicate records are removed.
-* Completely null records are removed.
-* Data types are cleaned and standardized.
+The transformation process includes:
 
-### Date Transformation
+- Removing duplicate records
+- Removing completely null records
+- Cleaning and standardizing data types
 
-Date fields are converted into appropriate date/time formats.
+## Date and Time Transformation
 
-### Delivery Metrics
+Date-related columns are converted into appropriate date/time formats to support delivery-related calculations and analysis.
 
-Delivery-related metrics are calculated, including:
+## Delivery Metrics
 
-* Actual delivery time
-* Estimated delivery time
-* Delivery delay
+The transformation calculates delivery-related metrics including:
 
-### Data Integration
+- Actual delivery time
+- Estimated delivery time
+- Delivery delay
 
-Multiple Olist datasets are progressively joined, including information related to:
+These metrics help integrate operational delivery information into the final dataset.
 
-* Orders
-* Customers
-* Payments
-* Items
-* Products
-* Sellers
-* Geolocation
-* Product categories
+## Dataset Integration
+
+Multiple Olist datasets are progressively joined to create an integrated dataset containing information related to:
+
+- Orders
+- Customers
+- Payments
+- Order items
+- Products
+- Sellers
+- Geolocation
+- Product categories
 
 ---
 
 # 🛠️ Technologies Used
 
-| Technology                   | Purpose                            |
-| ---------------------------- | ---------------------------------- |
-| Azure Data Factory           | Data ingestion and orchestration   |
-| Azure Data Lake Storage Gen2 | Data lake storage                  |
-| Azure Databricks             | Data cleaning and transformation   |
-| Azure Synapse Analytics      | SQL processing and external tables |
-| MySQL                        | Source data                        |
-| MongoDB / NoSQL              | Product-category source            |
-| Python / PySpark             | Data transformation                |
-| SQL                          | Data querying and processing       |
-| Parquet                      | Storage format                     |
-| GitHub                       | Source control and documentation   |
+| Technology | Purpose |
+|---|---|
+| Azure Data Factory | Data ingestion and orchestration |
+| Azure Data Lake Storage Gen2 | Cloud data lake storage |
+| Azure Databricks | Data cleaning and transformation |
+| PySpark | Distributed data transformation |
+| Python | Data processing and integration |
+| Azure Synapse Analytics | SQL processing and querying |
+| MySQL | Relational source system |
+| MongoDB / NoSQL | Product-category source |
+| Parquet | Processed data storage format |
+| SQL | Data querying and processing |
+| Git | Version control |
+| GitHub | Source control and project documentation |
 
 ---
 
 # 📁 Project Structure
 
+The repository is organized according to the actual project files and implementation artifacts.
+
 ```text
 Azure_Olist_Data_Engineering_Project/
 │
 ├── README.md
+│
+├── .gitignore
+│
 ├── Architecture/
 │   └── Architecture Diagram.png
 │
 ├── ADF/
-│   ├── datasets/
-│   ├── linked_services/
-│   ├── pipelines/
-│   └── screenshots/
-│
-├── Databricks/
-│   ├── notebooks/
-│   └── screenshots/
-│
-├── Synapse/
-│   ├── queries/
-│   └── screenshots/
+│   ├── dataset/
+│   │   ├── CSVFromLinkedServiceToSink.json
+│   │   ├── DataFromGithubViaLinkedService.json
+│   │   ├── Json1.json
+│   │   ├── MySqlTable1.json
+│   │   └── SQLToADLS.json
+│   │
+│   ├── linked_Service/
+│   │   ├── ADLSForCSV.json
+│   │   ├── JsonFromGithubForLoop.json
+│   │   ├── SQLToADLSLinkedService.json
+│   │   ├── filessSQLDB.json
+│   │   └── httpGithubLinkedService.json
+│   │
+│   ├── pipeline/
+│   │   └── Data ingestion pipeline.json
+│   │
+│   ├── ADF_01_Ingestion_Pipeline_Overview.png
+│   ├── ADF_02_ForEach_Table_Iteration.png
+│   ├── ADF_03_Table_Metadata_Lookup.png
+│   ├── ADF_04_MySQL_Source_Configuration.png
+│   ├── ADF_05_Successful_running_pipeline.png
+│   ├── ADF_06_HTTP_Source_Configuration.png.png
+│   └── ADF_07_MySQL_Source_Configuration.png.png
 │
 ├── ADLS_Gen2/
-│   └── screenshots/
+│   ├── Bronze.png
+│   ├── Silver.png
+│   └── Gold.png
 │
-└── External_Table/
-    └── screenshots/
+├── Databricks/
+│   ├── Databricks code for Transformation.ipynb
+│   ├── Screenshot 2026-09-18 184331.png
+│   └── Screenshot 2026-09-18 184355.png
+│
+├── External_Table/
+│   ├── MySQL_External_Table.png
+│   └── NoSQL_External_Table.png
+│
+└── synapse/
+    ├── Queries/
+    │   ├── Create View.sql
+    │   ├── SQL on OlistData.sql
+    │   ├── SQL to gold layer.sql
+    │   └── View final2.sql
+    │
+    ├── Screenshot 2026-09-18 192655.png
+    ├── Screenshot 2026-09-18 192743.png
+    ├── Screenshot 2026-09-18 192805.png
+    └── Screenshot 2026-09-18 192822.png
 ```
+
+> **Note:** `ADF/diagnostic.json` and `ADF/info.txt` are local project files and are intentionally not included in the GitHub repository.
 
 ---
 
 # 📸 Project Screenshots
 
-Screenshots are organized by Azure service and demonstrate the implementation of the pipeline.
+The repository includes screenshots documenting the implementation of the different stages of the pipeline.
 
-### Azure Data Factory
+## Azure Data Factory
 
-Includes screenshots of:
+The ADF screenshots demonstrate:
 
-* Ingestion pipeline
-* ForEach iteration
-* Metadata lookup
-* HTTP source
-* MySQL source
-* Successful pipeline execution
+- Ingestion pipeline configuration
+- ForEach activity
+- Metadata Lookup
+- HTTP source configuration
+- MySQL source configuration
+- Successful pipeline execution
 
-### Azure Databricks
+## Azure Databricks
 
-Includes screenshots of:
+The Databricks screenshots document the transformation environment and execution of the data transformation workflow.
 
-* Bronze data ingestion
-* MongoDB integration
-* Data cleaning
-* Transformations
-* Dataset joins
-* Silver output
+The transformation notebook is also included in:
 
-### Azure Synapse
+```text
+Databricks/Databricks code for Transformation.ipynb
+```
 
-Includes screenshots of:
+## ADLS Gen2
 
-* SQL queries
-* Views
-* Parquet queries
-* Gold processing
-* External table creation
+Screenshots demonstrate the three layers of the Medallion Architecture:
 
-### ADLS Gen2
+- Bronze
+- Silver
+- Gold
 
-Screenshots demonstrate:
+## Azure Synapse
 
-* Bronze layer
-* Silver layer
-* Gold layer
+The Synapse screenshots demonstrate the SQL processing and external-table workflow.
 
-### External Data Sources
+The SQL scripts are available in:
 
-Screenshots demonstrate the MySQL and NoSQL source tables used in the project.
+```text
+synapse/Queries/
+```
+
+## External Data Sources
+
+Screenshots are included for the external MySQL and NoSQL data sources used in the project.
 
 ---
 
 # 📚 Key Learnings
 
-Through this project, I gained practical experience with:
+This project provided practical experience with:
 
-* Building cloud-based data pipelines
-* Azure Data Factory orchestration
-* Metadata-driven ingestion
-* ADLS Gen2 data lake architecture
-* Medallion Architecture
-* Azure Databricks and PySpark
-* Data cleaning and transformation
-* Multi-source data integration
-* Parquet-based data processing
-* Azure Synapse Analytics
-* External tables and external data sources
-* SQL-based data processing
-* End-to-end Azure data engineering workflows
+- Building end-to-end cloud data pipelines
+- Azure Data Factory orchestration
+- Metadata-driven ingestion
+- Lookup and ForEach activities
+- ADLS Gen2
+- Medallion Architecture
+- Azure Databricks
+- PySpark
+- Data cleaning and transformation
+- Multi-source data integration
+- MySQL data ingestion
+- MongoDB / NoSQL integration
+- Parquet data processing
+- Azure Synapse Analytics
+- `OPENROWSET`
+- SQL views
+- External data sources
+- External tables
+- Cloud-based data lake architecture
+- Git and GitHub for project version control
 
 ---
 
 # 🚀 Future Improvements
 
-Potential improvements to the project include:
+Possible improvements to the project include:
 
-* Implementing incremental data loading
-* Adding data quality validation
-* Adding pipeline monitoring and alerting
-* Implementing CI/CD for Azure resources
-* Adding automated testing for transformations
-* Connecting the Gold layer to a BI dashboard
-* Implementing more advanced analytics on the processed data
+- Implementing incremental data loading
+- Adding automated data-quality checks
+- Adding pipeline monitoring and alerting
+- Implementing CI/CD for Azure resources
+- Adding automated testing for transformations
+- Adding data validation between pipeline layers
+- Connecting the Gold layer to Power BI
+- Adding additional analytical queries and business metrics
+- Improving metadata management and pipeline scalability
 
 ---
 
-## 👨‍💻 Author
+# 👨‍💻 Author
 
 **Naveed Shaikh**
 
 Data Engineering | Azure | Databricks | SQL | PySpark
 
-```
+---
 
-### One correction before you paste it
+## ⭐ Project Summary
 
-Your actual Synapse SQL confirms that **`gold.final2` filters for delivered orders**, and `gold.finaltable` is created from `gold.final2`. :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
+This project demonstrates an end-to-end Azure data engineering workflow:
 
-So I intentionally described that specifically rather than claiming Synapse performed transformations that aren't visible in your SQL files.
-
-Also, your `SQL on OlistData.sql` confirms that you used `OPENROWSET` to query Parquet directly. :contentReference[oaicite:2]{index=2}
-
-**Next step:** create `README.md` in the root of `Azure_Olist_Data_Engineering_Project/` and paste this in. Don't push to GitHub yet. After you've created it, tell me **"README done"**, and we'll create the `.gitignore` and then do the final pre-GitHub check.
+```text
+Multi-Source Data
+      │
+      ▼
+Azure Data Factory
+      │
+      ▼
+ADLS Gen2 - Bronze
+      │
+      ▼
+Azure Databricks
+      │
+      ├── Cleaning
+      ├── Transformation
+      ├── Joins
+      └── Multi-source Integration
+      │
+      ▼
+ADLS Gen2 - Silver
+      │
+      ▼
+Azure Synapse
+      │
+      ├── OPENROWSET
+      ├── SQL Views
+      └── External Table
+      │
+      ▼
+ADLS Gen2 - Gold / Serving
 ```
