@@ -1,11 +1,3 @@
-Perfect. We'll use:
-
-```text
-Architecture/Architecture Diagram.png
-```
-
-Now let's create your **GitHub-ready README.md**. Based on the project details you've given me and the Synapse queries you provided, here's a strong version:
-
 ````markdown
 # Azure Olist E-Commerce Data Engineering Project
 
